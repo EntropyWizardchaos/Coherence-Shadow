@@ -2,9 +2,9 @@
 
 **Galactic coherence correlates with dark matter fraction**
 
-**Author:** Harley Robinson  
-**Date:** March 2026  
-**Data:** SPARC (Spitzer Photometry and Accurate Rotation Curves), N=175 galaxies
+**Author:** Harley Robinson
+**Date:** March 2026, corrected April 2026
+**Data:** SPARC (Spitzer Photometry and Accurate Rotation Curves), N=143 galaxies
 
 ---
 
@@ -14,23 +14,34 @@ We find that galactic coherence — measured two independent ways — correlates
 
 | Coherence Measure | β | p-value |
 |-------------------|---------|---------|
-| Kinematic (rotation curve smoothness) | -0.068 | 0.139 |
-| **Morphological (light concentration)** | **-0.354** | **0.005** |
+| Kinematic (rotation curve smoothness) | -0.033 | 0.511 |
+| **Morphological (light concentration)** | **-0.344** | **0.012** |
 
 More ordered galaxies have less dark matter. The two measures are uncorrelated with each other (r = 0.13), yet both point the same direction.
 
 ---
 
+## April 2026 Correction
+
+Two bugs were identified and fixed by independent code review:
+
+1. **Removed f_dm clipping**: `np.clip(fdm, 0, 1)` was censoring negative f_dm values — exactly the galaxies most supporting the hypothesis. Negative f_dm (where V_baryon > V_obs at the adopted M/L) is retained as honest information.
+2. **Outer radius definition**: Changed from last 3 points to outer 25% of measured radii (minimum 3 points), for consistency across galaxy sizes.
+
+The concentration result weakened from p=0.005 to p=0.012 but **remains significant and survives all controls** (mass, gas fraction, joint model). The kinematic result was already marginal and is now non-significant.
+
+---
+
 ## The Finding
 
-**Concentration index** (R₅₀/R₉₀, ratio of radii containing 50% vs 90% of disk light) predicts dark matter fraction at p = 0.005.
+**Concentration index** (R₅₀/R₉₀, ratio of radii containing 50% vs 90% of disk light) predicts dark matter fraction at p = 0.012.
 
 This correlation is:
-- Independent of stellar mass (r = -0.02)
-- Independent of Hubble morphology (r = -0.04)
+- Independent of stellar mass
+- Independent of Hubble morphology
 - Independent of kinematic coherence (r = 0.13)
 
-High-concentration galaxies have **7% less inferred dark matter** than low-concentration galaxies (p = 0.007).
+High-concentration galaxies have **6% less inferred dark matter** than low-concentration galaxies (p = 0.026).
 
 ---
 
@@ -72,9 +83,9 @@ python analysis/sparc_concentration.py --csv data/sparc_results.csv
 ### What You Should Get
 
 If the result replicates:
-- `C_conc → f_dm`: β ≈ -0.35, p < 0.01
-- High vs Low concentration Δf_dm ≈ -0.07, p < 0.01
-- `C_kin → f_dm`: β ≈ -0.07, p ≈ 0.14 (correct sign, marginal)
+- `C_conc -> f_dm`: beta ~ -0.34, p ~ 0.012
+- High vs Low concentration delta_f_dm ~ -0.06, p ~ 0.026
+- `C_kin -> f_dm`: beta ~ -0.03, p ~ 0.51 (correct sign, not significant)
 
 If it doesn't replicate, please open an issue.
 
@@ -90,30 +101,43 @@ If it doesn't replicate, please open an issue.
 
 ```
 f_dm ~ C_conc
-β = -0.354 ± 0.125
-p = 0.005
+beta = -0.344 +/- 0.135
+p = 0.012
 ```
 
-### 2. Effect Is Not Explained by Confounders
+### 2. Effect Survives Controls
 
-| Control Variable | Correlation with C_conc |
-|------------------|------------------------|
-| Stellar mass     | r = -0.02 (p = 0.77)  |
-| Hubble type      | r = -0.04 (p = 0.66)  |
-| Kinematic coherence | r = 0.13 (p = 0.13) |
+| Control | beta(C_conc) | p-value |
+|---------|-------------|---------|
+| None | -0.344 | 0.012 |
+| + log(Vmax) | -0.354 | 0.010 |
+| + gas fraction | -0.332 | 0.011 |
+| + C_kin | -0.338 | 0.015 |
 
-### 3. Two Independent Measures Agree
+### 3. Two Independent Measures Agree in Direction
 
 Kinematic and morphological coherence are weakly correlated, yet both predict lower dark matter fraction:
 
 ```
-Kinematic:     β = -0.068 (p = 0.14)
-Morphological: β = -0.354 (p = 0.005)
+Kinematic:     beta = -0.033 (p = 0.51)
+Morphological: beta = -0.344 (p = 0.012)
 ```
 
 ### 4. Gas Fraction Split
 
-The effect is **stronger in low-gas galaxies** (β = -0.10) than high-gas galaxies (β = -0.004). This is opposite to what baryonic feedback models predict.
+The effect is **stronger in high-gas galaxies** (beta = -0.489, p = 0.009) than low-gas galaxies (beta = -0.267, p = 0.15).
+
+### 5. Radial Bin Structure (High vs Low C_kin)
+
+| Radial Bin | delta_f_dm | p-value |
+|------------|------------|---------|
+| 0.0 - 0.2 | -0.135 | 0.318 |
+| 0.2 - 0.4 | -0.172 | 0.015 |
+| 0.4 - 0.6 | -0.122 | 0.016 |
+| 0.6 - 0.8 | -0.083 | 0.024 |
+| 0.8 - 1.0 | -0.064 | 0.024 |
+
+The difference peaks at intermediate radii and remains significant from R/Rmax = 0.2 outward.
 
 ---
 
@@ -121,19 +145,19 @@ The effect is **stronger in low-gas galaxies** (β = -0.10) than high-gas galaxi
 
 ```
 coherence-shadow/
-├── README.md                       # This file
-├── LICENSE                         # MIT License
-├── methodology.md                  # How coherence and f_dm are computed
-├── results.md                      # Full results with tables and interpretation
-├── analysis/
-│   ├── sparc_coherence.py          # Full pipeline: both coherence measures,
-│   │                               #   radial bins, gas splits, regressions
-│   ├── sparc_concentration.py      # Standalone morphological coherence test
-│   └── requirements.txt            # Python dependencies
-├── data/
-│   └── sparc_results.csv           # Pre-computed per-galaxy values
-└── theory/
-    └── cmd_framework.md            # Theoretical context (optional reading)
+|-- README.md                       # This file
+|-- LICENSE                         # MIT License
+|-- methodology.md                  # How coherence and f_dm are computed
+|-- results.md                      # Full results with tables and interpretation
+|-- analysis/
+|   |-- sparc_coherence.py          # Full pipeline: both coherence measures,
+|   |                               #   radial bins, gas splits, regressions
+|   |-- sparc_concentration.py      # Standalone morphological coherence test
+|   +-- requirements.txt            # Python dependencies
+|-- data/
+|   +-- sparc_results.csv           # Pre-computed per-galaxy values
++-- theory/
+    +-- cmd_framework.md            # Theoretical context (optional reading)
 ```
 
 ---

@@ -192,15 +192,14 @@ def compute_fdm_array(df, y_star=Y_STAR):
 
     vbar2 = vgas2 + y_star * (vdisk2 + vbul2)
     fdm = 1.0 - (vbar2 / (vobs2 + 1e-12))
-    return np.clip(fdm, 0, 1)
+    return fdm  # No clipping — negative f_dm is real information about M/L
 
 
 def compute_fdm_outer(df, y_star=Y_STAR):
-    """Dark matter fraction at outer radii (mean of last 3 points)."""
+    """Dark matter fraction at outer radii (mean of outer 25%, min 3 points)."""
     fdm = compute_fdm_array(df, y_star)
-    if len(fdm) >= 3:
-        return float(np.mean(fdm[-3:]))
-    return float(fdm[-1])
+    n_outer = max(3, len(fdm) // 4)
+    return float(np.mean(fdm[-n_outer:]))
 
 
 def compute_fdm_radial_bins(df, y_star=Y_STAR):
